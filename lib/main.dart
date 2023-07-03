@@ -1,163 +1,186 @@
 import 'package:flutter/material.dart';
-import 'package:process_run/shell.dart';
+import 'package:process_run/cmd_run.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text('YouTube Downloader'),
-        ),
-        body: const SafeArea(
-          child: Padding(
-            padding: EdgeInsets.all(8.0),
-            child: DownloadForm(),
-          ),
-        ),
+      title: 'YouTube Downloader GUI',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
       ),
+      home: MyHomePage(),
     );
   }
 }
 
-class DownloadForm extends StatefulWidget {
-  const DownloadForm({super.key});
+class MyHomePage extends StatefulWidget {
+  MyHomePage({Key key}) : super(key: key);
 
   @override
-  State<DownloadForm> createState() => _DownloadFormState();
+  _MyHomePageState createState() => _MyHomePageState();
 }
 
-class _DownloadFormState extends State<DownloadForm> {
-  final _formKey = GlobalKey<FormState>();
-  final _controller = TextEditingController();
-  bool dlVid = false;
+class _MyHomePageState extends State<MyHomePage> {
+  String ytUrl;
+  bool dlVid = true;
   bool dlAud = false;
   bool dlThumb = false;
-  List<String> videoQualityList = ['480p', '720p', '1080p', '1440p', '2160p'];
-  List<String> audioQualityList = ['64k', '128k', '192k', '256k', '320k'];
-  String videoQuality = '480p';
-  String audioQuality = '64k';
-  String timeStart = '';
-  String timeEnd = '';
+  TimeOfDay timeStart;
+  TimeOfDay timeEnd;
+  String qualVid = '1080p';
+  String qualAud = '192k';
+
+  List<String> qualVidOptions = ['480p', '720p', '1080p', '2K', '4K'];
+  List<String> qualAudOptions = ['64k', '128k', '192k', '256k', '320k'];
+
+  void download() async {
+    if (ytUrl == null || !ytUrl.contains('youtube.com')) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          content: Text('Enter valid YouTube URL'),
+        ),
+      );
+      return;
+    }
+
+    String command =
+        'yt-dlp -f \'bestvideo[height<=${qualVid.replaceAll('p', '')}]'
+        '+bestaudio/best[height<=${qualVid.replaceAll('p', '')}]\' $ytUrl';
+    if (dlAud) command += ' -x --audio-format mp3 --audio-quality ${qualAud}';
+    if (dlThumb) command += ' --write-thumbnail';
+    if (timeStart != null && timeEnd != null)
+      command +=
+          ' --postprocessor-args "-ss ${timeStart.format(context)} -to ${timeEnd.format(context)}"';
+
+    await runCmd(
+        ProcessCmd(command.split(' ')[0], command.split(' ').sublist(1)));
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Form(
-      key: _formKey,
-      child: Column(
-        children: <Widget>[
-          TextFormField(
-            controller: _controller,
-            decoration: const InputDecoration(
-              hintText: 'Enter YouTube video URL',
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('YouTube Downloader GUI'),
+      ),
+      body: Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Column(
+          children: <Widget>[
+            TextField(
+              onChanged: (value) => ytUrl = value,
+              decoration: InputDecoration(
+                labelText: 'YouTube Video URL',
+              ),
             ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter YouTube URL';
-              }
-              return null;
-            },
-          ),
-          CheckboxListTile(
-            title: const Text("Download Video"),
-            value: dlVid,
-            onChanged: (newValue) {
-              setState(() {
-                dlVid = newValue!;
-              });
-            },
-          ),
-          CheckboxListTile(
-            title: const Text("Download Audio"),
-            value: dlAud,
-            onChanged: (newValue) {
-              setState(() {
-                dlAud = newValue!;
-              });
-            },
-          ),
-          CheckboxListTile(
-            title: const Text("Download Thumbnail"),
-            value: dlThumb,
-            onChanged: (newValue) {
-              setState(() {
-                dlThumb = newValue!;
-              });
-            },
-          ),
-          DropdownButton<String>(
-            value: videoQuality,
-            onChanged: (String? newValue) {
-              setState(() {
-                videoQuality = newValue!;
-              });
-            },
-            items:
-                videoQualityList.map<DropdownMenuItem<String>>((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value),
-              );
-            }).toList(),
-          ),
-          DropdownButton<String>(
-            value: audioQuality,
-            onChanged: (String? newValue) {
-              setState(() {
-                audioQuality = newValue!;
-              });
-            },
-            items:
-                audioQualityList.map<DropdownMenuItem<String>>((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value),
-              );
-            }).toList(),
-          ),
-          // other input fields, dropdowns here
-          // ...
-          ElevatedButton(
-            onPressed: () {
-              if (_formKey.currentState!.validate()) {
-                handleDownload(_controller.text);
-              }
-            },
-            child: const Text('Download'),
-          ),
-        ],
+            Row(
+              children: <Widget>[
+                Checkbox(
+                  value: dlVid,
+                  onChanged: (bool value) {
+                    setState(() {
+                      dlVid = value;
+                    });
+                  },
+                ),
+                Text('Video'),
+                Checkbox(
+                  value: dlAud,
+                  onChanged: (bool value) {
+                    setState(() {
+                      dlAud = value;
+                    });
+                  },
+                ),
+                Text('Audio'),
+                Checkbox(
+                  value: dlThumb,
+                  onChanged: (bool value) {
+                    setState(() {
+                      dlThumb = value;
+                    });
+                  },
+                ),
+                Text('Thumbnail'),
+              ],
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    onTap: () async {
+                      TimeOfDay time = await showTimePicker(
+                        context: context,
+                        initialTime: TimeOfDay.now(),
+                      );
+                      if (time != null) setState(() => timeStart = time);
+                    },
+                    readOnly: true,
+                    decoration: InputDecoration(
+                      labelText: 'Start Time',
+                      hintText: timeStart?.format(context) ?? '',
+                    ),
+                  ),
+                ),
+                SizedBox(width: 16),
+                Expanded(
+                  child: TextField(
+                    onTap: () async {
+                      TimeOfDay time = await showTimePicker(
+                        context: context,
+                        initialTime: TimeOfDay.now(),
+                      );
+                      if (time != null) setState(() => timeEnd = time);
+                    },
+                    readOnly: true,
+                    decoration: InputDecoration(
+                      labelText: 'End Time',
+                      hintText: timeEnd?.format(context) ?? '',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            DropdownButton(
+              value: qualVid,
+              items: qualVidOptions
+                  .map((value) => DropdownMenuItem(
+                        child: Text(value),
+                        value: value,
+                      ))
+                  .toList(),
+              onChanged: (String value) {
+                setState(() {
+                  qualVid = value;
+                });
+              },
+            ),
+            DropdownButton(
+              value: qualAud,
+              items: qualAudOptions
+                  .map((value) => DropdownMenuItem(
+                        child: Text(value),
+                        value: value,
+                      ))
+                  .toList(),
+              onChanged: (String value) {
+                setState(() {
+                  qualAud = value;
+                });
+              },
+            ),
+            ElevatedButton(
+              onPressed: download,
+              child: Text('Download'),
+            ),
+          ],
+        ),
       ),
     );
-  }
-
-  void handleDownload(String url) async {
-    String cmd = 'yt-dlp ';
-
-    if (dlVid) {
-      cmd +=
-          '--format "bestvideo[height<=${videoQuality.substring(0, videoQuality.length - 1)}]+bestaudio[abr<=${audioQuality.substring(0, audioQuality.length - 1)}]/best" ';
-    } else if (dlAud) {
-      cmd +=
-          '-x --audio-quality ${audioQuality.substring(0, audioQuality.length - 1)} ';
-    }
-
-    if (dlThumb) {
-      cmd += '--write-thumbnail ';
-    }
-
-    if (timeStart.isNotEmpty && timeEnd.isNotEmpty) {
-      cmd += '--postprocessor-args "-ss ${timeStart} -to ${timeEnd}" ';
-    }
-
-    cmd += url;
-
-    var shell = Shell();
-    await shell.run(cmd);
   }
 }
