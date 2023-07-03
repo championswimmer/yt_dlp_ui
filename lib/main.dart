@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:process_run/cmd_run.dart';
+import 'package:process_run/shell.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -13,25 +15,27 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: MyHomePage(),
+      home: const MyHomePage(
+        key: Key("app"),
+      ),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key}) : super(key: key);
+  const MyHomePage({required Key key}) : super(key: key);
 
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  State<MyHomePage> createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  String ytUrl;
+  String? ytUrl;
   bool dlVid = true;
   bool dlAud = false;
   bool dlThumb = false;
-  TimeOfDay timeStart;
-  TimeOfDay timeEnd;
+  TimeOfDay? timeStart;
+  TimeOfDay? timeEnd;
   String qualVid = '1080p';
   String qualAud = '192k';
 
@@ -39,10 +43,10 @@ class _MyHomePageState extends State<MyHomePage> {
   List<String> qualAudOptions = ['64k', '128k', '192k', '256k', '320k'];
 
   void download() async {
-    if (ytUrl == null || !ytUrl.contains('youtube.com')) {
+    if (ytUrl == null || !ytUrl!.contains('youtube.com')) {
       showDialog(
         context: context,
-        builder: (context) => AlertDialog(
+        builder: (context) => const AlertDialog(
           content: Text('Enter valid YouTube URL'),
         ),
       );
@@ -54,27 +58,27 @@ class _MyHomePageState extends State<MyHomePage> {
         '+bestaudio/best[height<=${qualVid.replaceAll('p', '')}]\' $ytUrl';
     if (dlAud) command += ' -x --audio-format mp3 --audio-quality ${qualAud}';
     if (dlThumb) command += ' --write-thumbnail';
-    if (timeStart != null && timeEnd != null)
+    if (timeStart != null && timeEnd != null) {
       command +=
-          ' --postprocessor-args "-ss ${timeStart.format(context)} -to ${timeEnd.format(context)}"';
-
-    await runCmd(
-        ProcessCmd(command.split(' ')[0], command.split(' ').sublist(1)));
+          ' --postprocessor-args "-ss ${timeStart!.format(context)} -to ${timeEnd!.format(context)}"';
+    }
+    Shell shell = Shell();
+    await shell.run(command);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('YouTube Downloader GUI'),
+        title: const Text('YouTube Downloader GUI'),
       ),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: <Widget>[
             TextField(
               onChanged: (value) => ytUrl = value,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'YouTube Video URL',
               ),
             ),
@@ -82,31 +86,31 @@ class _MyHomePageState extends State<MyHomePage> {
               children: <Widget>[
                 Checkbox(
                   value: dlVid,
-                  onChanged: (bool value) {
+                  onChanged: (bool? value) {
                     setState(() {
-                      dlVid = value;
+                      dlVid = value!;
                     });
                   },
                 ),
-                Text('Video'),
+                const Text('Video'),
                 Checkbox(
                   value: dlAud,
-                  onChanged: (bool value) {
+                  onChanged: (bool? value) {
                     setState(() {
-                      dlAud = value;
+                      dlAud = value!;
                     });
                   },
                 ),
-                Text('Audio'),
+                const Text('Audio'),
                 Checkbox(
                   value: dlThumb,
-                  onChanged: (bool value) {
+                  onChanged: (bool? value) {
                     setState(() {
-                      dlThumb = value;
+                      dlThumb = value!;
                     });
                   },
                 ),
-                Text('Thumbnail'),
+                const Text('Thumbnail'),
               ],
             ),
             Row(
@@ -114,7 +118,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 Expanded(
                   child: TextField(
                     onTap: () async {
-                      TimeOfDay time = await showTimePicker(
+                      TimeOfDay? time = await showTimePicker(
                         context: context,
                         initialTime: TimeOfDay.now(),
                       );
@@ -127,11 +131,11 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                   ),
                 ),
-                SizedBox(width: 16),
+                const SizedBox(width: 16),
                 Expanded(
                   child: TextField(
                     onTap: () async {
-                      TimeOfDay time = await showTimePicker(
+                      TimeOfDay? time = await showTimePicker(
                         context: context,
                         initialTime: TimeOfDay.now(),
                       );
@@ -150,13 +154,13 @@ class _MyHomePageState extends State<MyHomePage> {
               value: qualVid,
               items: qualVidOptions
                   .map((value) => DropdownMenuItem(
-                        child: Text(value),
                         value: value,
+                        child: Text(value),
                       ))
                   .toList(),
-              onChanged: (String value) {
+              onChanged: (String? value) {
                 setState(() {
-                  qualVid = value;
+                  qualVid = value!;
                 });
               },
             ),
@@ -164,19 +168,19 @@ class _MyHomePageState extends State<MyHomePage> {
               value: qualAud,
               items: qualAudOptions
                   .map((value) => DropdownMenuItem(
-                        child: Text(value),
                         value: value,
+                        child: Text(value),
                       ))
                   .toList(),
-              onChanged: (String value) {
+              onChanged: (String? value) {
                 setState(() {
-                  qualAud = value;
+                  qualAud = value!;
                 });
               },
             ),
             ElevatedButton(
               onPressed: download,
-              child: Text('Download'),
+              child: const Text('Download'),
             ),
           ],
         ),
