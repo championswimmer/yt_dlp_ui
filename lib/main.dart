@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:process_run/shell.dart';
+import 'package:yt_dlp_ui/ui/time_input_field.dart';
 
 void main() {
   runApp(const MyApp());
@@ -63,6 +65,10 @@ class _MyHomePageState extends State<MyHomePage> {
           ' --postprocessor-args "-ss ${timeStart!.format(context)} -to ${timeEnd!.format(context)}"';
     }
     Shell shell = Shell();
+    if (kDebugMode) {
+      print("Running command: ==================================== ");
+      print(command);
+    }
     await shell.run(command);
   }
 
@@ -116,36 +122,28 @@ class _MyHomePageState extends State<MyHomePage> {
             Row(
               children: [
                 Expanded(
-                  child: TextField(
-                    onTap: () async {
-                      TimeOfDay? time = await showTimePicker(
-                        context: context,
-                        initialTime: TimeOfDay.now(),
+                  child: TimeInputField(
+                    key: const Key('start_time'),
+                    label: 'Start Time',
+                    onChanged: (value) => setState(() {
+                      timeEnd = TimeOfDay(
+                        hour: int.parse(value.split(':')[0]),
+                        minute: int.parse(value.split(':')[1]),
                       );
-                      if (time != null) setState(() => timeStart = time);
-                    },
-                    readOnly: true,
-                    decoration: InputDecoration(
-                      labelText: 'Start Time',
-                      hintText: timeStart?.format(context) ?? '',
-                    ),
+                    }),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: TextField(
-                    onTap: () async {
-                      TimeOfDay? time = await showTimePicker(
-                        context: context,
-                        initialTime: TimeOfDay.now(),
+                  child: TimeInputField(
+                    key: const Key('end_time'),
+                    label: 'End Time',
+                    onChanged: (value) => setState(() {
+                      timeEnd = TimeOfDay(
+                        hour: int.parse(value.split(':')[0]),
+                        minute: int.parse(value.split(':')[1]),
                       );
-                      if (time != null) setState(() => timeEnd = time);
-                    },
-                    readOnly: true,
-                    decoration: InputDecoration(
-                      labelText: 'End Time',
-                      hintText: timeEnd?.format(context) ?? '',
-                    ),
+                    }),
                   ),
                 ),
               ],
